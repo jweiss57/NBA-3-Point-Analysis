@@ -1,0 +1,249 @@
+---
+title: "Steph Cury and NBA 3 Point Analysis"
+author: "Jacob Weiss and Seigo Tomozawa"
+date: "5/31/2022"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r knitr-options, include = FALSE}
+knitr::opts_chunk$set(fig.align="center",
+                      warning = FALSE,
+                      message = FALSE,
+                      comment = NA)
+```
+
+```{r libs, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(rvest)
+library(janitor)
+library(plotly)
+library(stringr)
+library(scales)
+library(xml2)
+library(hoopR)
+library(nbastatR)
+library(purrr)
+library(sportyR)
+theme_set(theme_bw())
+```
+
+## Intoduction
+
+Since Stephen Curry has been in the NBA, 3-point shooting has increased substantially while midrange shots have steadily decreased. By looking at Curry’s historical 3-point shooting efficiency, we can understand why NBA teams and players have been deciding to trade more 2-point shots for 3-point shots. We decided to look at how Stephen Curry compares to other 3 point shooters and how overtime 3 point shooting has changed. From this we can see how Stephen Curry has changed the NBA
+
+## Stephen Curry compared to All Time Top 20 NBA 3 Point Shooters
+
+To start this analysis we first decided to look at the top 20 NBA 3 point shooters all time and compare them to Stephen Curry. To do this we found the top 20 3 point shooters on a website named land of basketball with the link shown bellow in the R code. We then brought in the data and cleaned it within R.
+
+```{r}
+reg_url2 <-"https://www.landofbasketball.com/all_time_leaders/3_pointers_total_career_season.htm"
+pg3 <- xml2::read_html(reg_url2)
+  basketball_three_leaders <- rvest::html_table(pg3, fill = TRUE)[[1]]
+  names(basketball_three_leaders) <- basketball_three_leaders[1, ]
+basketball_three_leaders <- basketball_three_leaders[c(2:11), ]
+  basketball_three_leaders_2 <- janitor::clean_names(basketball_three_leaders)
+
+basketball_three_leaders_2 <- basketball_three_leaders_2 %>%
+  select(., player, x3_pointers_made, seasons, games, total3_pointers_attempted)
+basketball_three_leaders_2$x3_pointers_made <- as.numeric(gsub(",","",basketball_three_leaders_2$x3_pointers_made))
+basketball_three_leaders_2$games <- as.numeric(gsub(",","",basketball_three_leaders_2$games))
+basketball_three_leaders_2$total3_pointers_attempted <- as.numeric(gsub(",","",basketball_three_leaders_2$total3_pointers_attempted))
+basketball_three_leaders_2[, c(2, 3, 4, 5)] <- sapply(basketball_three_leaders_2[ c(2, 3, 4, 5)], as.numeric )
+
+pg3 <- xml2::read_html(reg_url2)
+  basketball_three_leaders_3 <- rvest::html_table(pg3, fill = TRUE)[[2]]
+  names(basketball_three_leaders_3) <- basketball_three_leaders_3[1, ]
+basketball_three_leaders_3 <- basketball_three_leaders_3[c(2:11), ]
+  basketball_three_leaders_4 <- janitor::clean_names(basketball_three_leaders_3)
+
+basketball_three_leaders_4 <- basketball_three_leaders_4 %>%
+  select(., player, x3_pointers_made, seasons, games, total3_pointers_attempted)
+basketball_three_leaders_4$x3_pointers_made <- as.numeric(gsub(",","",basketball_three_leaders_4$x3_pointers_made))
+basketball_three_leaders_4$games <- as.numeric(gsub(",","",basketball_three_leaders_4$games))
+basketball_three_leaders_4$total3_pointers_attempted <- as.numeric(gsub(",","",basketball_three_leaders_4$total3_pointers_attempted))
+basketball_three_leaders_4[, c(2, 3, 4, 5)] <- sapply(basketball_three_leaders_4[ c(2, 3, 4, 5)], as.numeric )
+
+total_3 <- rbind(basketball_three_leaders_2, basketball_three_leaders_4)
+```
+
+
+After bringing in the data we then created a scatter plot using the package plotly. This scatter graph shows the each of the top 20 three point shooters by the amount of three pointers made and the number of games played. We created the graph with the R code that follows:
+
+```{r}
+p <- ggplot(data = total_3,
+            aes(x = games, y = x3_pointers_made,col = player,
+                text = paste('Players: ', player, '\n',
+                             '3 Pointers Made:', x3_pointers_made, '\n', 'Games Played: ', games))) +
+  geom_point() + 
+  labs(title = "Top 20 Career 3 Pointers Made", x = "Games", y = "Three Pointers Made")
+ggplotly(p, tooltip = "text")
+```
+
+From this graph we can see Stephen Curry is far ahead in 3 point shots made while not playing nearly as many games as other people on the graph. We can also see from the graph the player with the second most 3 point shots made is Ray Allen who is retired and has played over 350 more games than Stephen Curry. From this we decided to compare the two to look at their differences in shooting position. 
+
+## Stephen Curry Shooting Chart Compaired to Ray Allen
+
+To compare Stephen Curry's (the number one 3 point shooter) 3 point shooting positions to Ray Allen (the number two 3 point shooter) we used the nbastatR package. We took the team shot data for the Bucks from the years of 2000 to 2002 and from the Celtics from the years of 2007 to 2012. From this we filtered for only shots that Ray Allen took. We did a similar process for Stephen Curry and took the Warriors shooting data from the years of 2010 to 2022 and filtered by Stephen Curry. The following process done in R is seen below. 
+```{r}
+Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2)
+warriors_shot_chart_df <- dplyr::bind_rows(
+  nbastatR::teams_shots(teams = "Bucks", seasons = 2000),
+  nbastatR::teams_shots(teams = "Bucks", seasons = 2001),
+  nbastatR::teams_shots(teams = "Bucks", seasons = 2002),
+  nbastatR::teams_shots(teams = "Celtics", seasons = 2007),
+  nbastatR::teams_shots(teams = "Celtics", seasons = 2008),
+  nbastatR::teams_shots(teams = "Celtics", seasons = 2009),
+  nbastatR::teams_shots(teams = "Celtics", seasons = 2010),
+  nbastatR::teams_shots(teams = "Celtics", seasons = 2011),
+  nbastatR::teams_shots(teams = "Celtics", seasons = 2012),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2010),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2011),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2012),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2013),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2014),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2015),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2016),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2017),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2018),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2019),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2020),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2021),
+  nbastatR::teams_shots(teams = "Warriors", seasons = 2022))
+```
+ 
+ After we got the data we then created graphs for both Ray Allen and Stephen Curry of their shooting positions when taking 3 point attempts. The following figures and the R code to make them are seen below.
+ 
+For Stephen Curry:
+```{r}
+p <- geom_basketball(league = "NBA", full_surf = F, rotate = T,
+court_background_color = "white",
+court_apron_color = "white",
+two_point_range_color = "white",
+amateur_painted_area_color = "white",
+professional_painted_area_color = "white",
+free_throw_semi_circle_fill_color = "white")
+p + geom_point(data = warriors_shot_chart_df %>%
+dplyr::filter(., zoneBasic != "Backcourt",
+yearSeason %in% c(2010:2022),
+namePlayer == "Stephen Curry",
+typeShot == "3PT Field Goal"),
+aes(x = -locationX/10, y = (locationY - 420)/10,
+col = zoneBasic),
+alpha = .15) +
+scale_color_brewer("Zone", palette = "Dark2") +
+labs(caption = "")
+```
+
+For Ray Allen:
+```{r}
+p + geom_point(data = warriors_shot_chart_df %>%
+dplyr::filter(., zoneBasic != "Backcourt",
+yearSeason %in% c(2000:2012),
+namePlayer == "Ray Allen",
+typeShot == "3PT Field Goal"),
+aes(x = -locationX/10, y = (locationY - 420)/10,
+col = zoneBasic),
+alpha = .15) +
+scale_color_brewer("Zone", palette = "Dark2") +
+labs(caption = "")
+```
+
+From looking at these two graphs we can see the drastic difference in how Ray Allen would shoot and how Stephen Curry shoots. Based on the charts it can see how much farther from the 3 point line Stephen Curry tends to shoot. Stephen Curry has a much denser plot farther outside the 3 point line than Ray Allen which shows how different of a shooter Stephen Curry is compared to the past NBA top 3 point shooter. Next we will look at how Stephen Curry changed how the overall NBA 3 point shooting.
+
+## NBA 3 Point Shooting
+
+To look at how Stephen Curry changed the NBA 3 point shooting we had to go back to 1999. Look at the overall league averages we had to scrape the data from a website. To do this we used basketballrefrence.com. We used the regular season averages for each team to look at how the 3 point shooting rate has changed since 1999 to 2022. To do this we averaged each teams stats for each season and divided the three point attempts per a game by the total field goals shot per a game. The R data is shown below.
+```{r}
+results <- dplyr::tibble()
+#adv_url <- "https://www.basketball-reference.com/leagues/NBA_1999.html"
+years <- 1999:2015
+for(i in seq_along(years)){
+  cat(sprintf('Year: %s at %s\n', years[i], Sys.time()))
+  reg_url <- paste("https://www.basketball-reference.com/leagues/NBA_", years[i],
+                   ".html", sep = "")
+  pg <- xml2::read_html(reg_url)
+  basketball_reg_stats <- rvest::html_table(pg, fill = TRUE)[[3]]
+  basketball_reg_stats <- dplyr::mutate(basketball_reg_stats, season = years[i])
+  results <- dplyr::bind_rows(results, basketball_reg_stats)
+}
+
+results1 <- dplyr::tibble()
+#adv_url <- "https://www.basketball-reference.com/leagues/NBA_1999.html"
+years1 <- 2016:2022
+for(k in seq_along(years1)){
+  cat(sprintf('Year: %s at %s\n', years1[k], Sys.time()))
+  reg_url1 <- paste("https://www.basketball-reference.com/leagues/NBA_", years1[k],
+                   ".html", sep = "")
+  pg <- xml2::read_html(reg_url1)
+  basketball_reg_stats1 <- rvest::html_table(pg, fill = TRUE)[[5]]
+  basketball_reg_stats1 <- dplyr::mutate(basketball_reg_stats1, season = years1[k])
+  results1 <- dplyr::bind_rows(results1, basketball_reg_stats1)
+}
+results_final <- rbind(results, results1)
+
+
+saveRDS(results_final, "\\Users\\jacob\\Info 3700 (Sports Statistics)\\Project Info 3700\\nba-basketball-stats-1999-2021.rds")
+
+
+```
+
+We then made a graph that shows each seasons three point attempts per a game divided by the total field goals shot per a game and the season. The graph and R code is shown below.
+
+```{R}
+Basketball_Data <- readRDS("\\Users\\jacob\\Info 3700 (Sports Statistics)\\Project Info 3700\\nba-basketball-stats-1999-2021.rds")
+Basketball_Data_Filtered <- Basketball_Data %>%
+  filter(., Team == 'League Average') 
+colnames(Basketball_Data_Filtered)[9] <- "ThreeAtmp"
+Basketball_Data_Filtered <- Basketball_Data_Filtered %>%
+  mutate(ThreeAtemptPec = ThreeAtmp/FGA)
+
+p <- ggplot(data = Basketball_Data_Filtered,
+            aes(x = as.numeric(season), y = ThreeAtemptPec,
+                text = paste('Year: ', season, '\n',
+                             '3PA / FGA: ', percent(ThreeAtmp/FGA, .01)))) +
+  geom_point(color='salmon4') +
+  labs(title = "3PA/FGA vs Season", x = "Season",
+       y = "3PA / FGA")
+ggplotly(p, tooltip = "text")
+```
+
+From this graph we can see how since Stephen Curry has been in the league the average for 3 point shot attempts compared to overall field goal attempts has increased a significant amount. The most notable of these increases occurring during the 2015 to 2017 seasons during Stephen Curry's back to back MVP run in the 2015 and 2016 seasons. Based on the season trends we wanted to predict what would happen in future years. 
+
+## Predicting Future 3 Point Attempt Percentage
+
+Based on the previous uphill trend of 3 Point Attempt Percentage that we saw in the previous graph we decided to predict it for the future. To do this we created a linear regression model predicting 3 Point Attempt Percentage predicted by the season trend. The R code is shown below.
+
+```{r}
+colnames(results_final)[9] <- "ThreeAtmp"
+results_final <- results_final %>%
+  mutate(ThreeAtemptPec = ThreeAtmp/FGA)
+
+lm_three_atempts <- lm(ThreeAtemptPec ~ season,
+data = results_final)
+
+summary(lm_three_atempts)
+```
+
+From this we could see that season was a significant variable based on the low P value. We then went on with our prediction. The first we predicted what 3 Point Attempt Percentage would look like 10 years from now in 2032:
+
+```{r}
+Prediction_1 <- data.frame("season" = 2032)
+predict(lm_three_atempts, newdata = Prediction_1)
+```
+
+We then decided to predict 20 years from now in 2042:
+
+```{r}
+Prediction_2 <- data.frame("season" = 2042)
+predict(lm_three_atempts, newdata = Prediction_2)
+```
+
+Based on this we were able to see the uphill trend of 3 Point Attempt Percentage in the NBA and how much the 3 Point Attempt Percentage has increased since Stephen Curry joined the NBA. From this we can conclude that Stephen Curry has had a major impact on the 3 Point Attempt Percentage in the NBA.

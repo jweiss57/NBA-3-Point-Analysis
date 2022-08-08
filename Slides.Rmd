@@ -1,0 +1,245 @@
+---
+title: "Steph Cury and NBA 3 Point Analysis"
+author: "Jacob Weiss and Seigo Tomozawa"
+date: '2022-06-08'
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(rvest)
+library(janitor)
+library(plotly)
+library(stringr)
+library(scales)
+library(xml2)
+library(hoopR)
+library(nbastatR)
+library(purrr)
+library(sportyR)
+theme_set(theme_bw())
+```
+
+## Introduction
+
+-   Since Stephen Curry has been in the NBA, 3-point shooting has increased substantially while midrange shots have steadily decreased
+-   We decided to look at how Stephen Curry compares to other 3 point shooters
+-   We also looked at in the past 23 years how 3 point shooting has changed
+
+## **Stephen Curry compared to All Time Top 20 NBA 3 Point Shooters**
+
+-   We first decided to look at the top 20 NBA 3 point shooters all time and compare them to Stephen Curry
+
+-   This scatter graph shows the each of the top 20 three point shooters by the amount of three pointers made and the number of games played
+
+    ```{r, include=FALSE}
+    reg_url2 <-"https://www.landofbasketball.com/all_time_leaders/3_pointers_total_career_season.htm"
+    pg3 <- xml2::read_html(reg_url2)
+      basketball_three_leaders <- rvest::html_table(pg3, fill = TRUE)[[1]]
+      names(basketball_three_leaders) <- basketball_three_leaders[1, ]
+    basketball_three_leaders <- basketball_three_leaders[c(2:11), ]
+      basketball_three_leaders_2 <- janitor::clean_names(basketball_three_leaders)
+
+    basketball_three_leaders_2 <- basketball_three_leaders_2 %>%
+      select(., player, x3_pointers_made, seasons, games, total3_pointers_attempted)
+    basketball_three_leaders_2$x3_pointers_made <- as.numeric(gsub(",","",basketball_three_leaders_2$x3_pointers_made))
+    basketball_three_leaders_2$games <- as.numeric(gsub(",","",basketball_three_leaders_2$games))
+    basketball_three_leaders_2$total3_pointers_attempted <- as.numeric(gsub(",","",basketball_three_leaders_2$total3_pointers_attempted))
+    basketball_three_leaders_2[, c(2, 3, 4, 5)] <- sapply(basketball_three_leaders_2[ c(2, 3, 4, 5)], as.numeric )
+
+    pg3 <- xml2::read_html(reg_url2)
+      basketball_three_leaders_3 <- rvest::html_table(pg3, fill = TRUE)[[2]]
+      names(basketball_three_leaders_3) <- basketball_three_leaders_3[1, ]
+    basketball_three_leaders_3 <- basketball_three_leaders_3[c(2:11), ]
+      basketball_three_leaders_4 <- janitor::clean_names(basketball_three_leaders_3)
+
+    basketball_three_leaders_4 <- basketball_three_leaders_4 %>%
+      select(., player, x3_pointers_made, seasons, games, total3_pointers_attempted)
+    basketball_three_leaders_4$x3_pointers_made <- as.numeric(gsub(",","",basketball_three_leaders_4$x3_pointers_made))
+    basketball_three_leaders_4$games <- as.numeric(gsub(",","",basketball_three_leaders_4$games))
+    basketball_three_leaders_4$total3_pointers_attempted <- as.numeric(gsub(",","",basketball_three_leaders_4$total3_pointers_attempted))
+    basketball_three_leaders_4[, c(2, 3, 4, 5)] <- sapply(basketball_three_leaders_4[ c(2, 3, 4, 5)], as.numeric )
+
+    total_3 <- rbind(basketball_three_leaders_2, basketball_three_leaders_4)
+    ```
+
+```{r pressure}
+p <- ggplot(data = total_3,
+            aes(x = games, y = x3_pointers_made,col = player,
+                text = paste('Players: ', player, '\n',
+                             '3 Pointers Made:', x3_pointers_made, '\n', 'Games Played: ', games))) +
+  geom_point() + 
+  labs(title = "Top 20 Career 3 Pointers Made", x = "Games", y = "Three Pointers Made")
+ggplotly(p, tooltip = "text")
+```
+
+## Stephen Curry Shooting Chart Compaired to Ray Allen
+
+-   We then decided to take the analysis a step farther by comparing Stephen Curry to the second best three point shooter Ray Allen
+
+-   We used the nbastatR package
+
+-   The graphs for both Ray Allen and Stephen Curry are of their shooting positions when taking 3 point attempts
+
+    ```{r, include=FALSE}
+    Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2)
+    warriors_shot_chart_df <- dplyr::bind_rows(
+      nbastatR::teams_shots(teams = "Bucks", seasons = 2000),
+      nbastatR::teams_shots(teams = "Bucks", seasons = 2001),
+      nbastatR::teams_shots(teams = "Bucks", seasons = 2002),
+      nbastatR::teams_shots(teams = "Celtics", seasons = 2007),
+      nbastatR::teams_shots(teams = "Celtics", seasons = 2008),
+      nbastatR::teams_shots(teams = "Celtics", seasons = 2009),
+      nbastatR::teams_shots(teams = "Celtics", seasons = 2010),
+      nbastatR::teams_shots(teams = "Celtics", seasons = 2011),
+      nbastatR::teams_shots(teams = "Celtics", seasons = 2012),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2010),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2011),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2012),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2013),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2014),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2015),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2016),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2017),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2018),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2019),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2020),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2021),
+      nbastatR::teams_shots(teams = "Warriors", seasons = 2022))
+    ```
+
+For Stephen Curry:
+
+```{r curry}
+p <- geom_basketball(league = "NBA", full_surf = F, rotate = T,
+court_background_color = "white",
+court_apron_color = "white",
+two_point_range_color = "white",
+amateur_painted_area_color = "white",
+professional_painted_area_color = "white",
+free_throw_semi_circle_fill_color = "white")
+p + geom_point(data = warriors_shot_chart_df %>%
+dplyr::filter(., zoneBasic != "Backcourt",
+yearSeason %in% c(2010:2022),
+namePlayer == "Stephen Curry",
+typeShot == "3PT Field Goal"),
+aes(x = -locationX/10, y = (locationY - 420)/10,
+col = zoneBasic),
+alpha = .15) +
+scale_color_brewer("Zone", palette = "Dark2") +
+labs(caption = "")
+```
+
+For Ray Allen:
+
+```{r Allen}
+p + geom_point(data = warriors_shot_chart_df %>%
+dplyr::filter(., zoneBasic != "Backcourt",
+yearSeason %in% c(2000:2012),
+namePlayer == "Ray Allen",
+typeShot == "3PT Field Goal"),
+aes(x = -locationX/10, y = (locationY - 420)/10,
+col = zoneBasic),
+alpha = .15) +
+scale_color_brewer("Zone", palette = "Dark2") +
+labs(caption = "")
+```
+
+## NBA 3 Point Shooting
+
+-   While thinking about how the NBA overall 3 point shooting has changed we decided to visualize this
+
+-   We pulled our data from basketballrefrence.com
+
+-   We used the regular season averages for each team to look at how the 3 point shooting rate has changed since 1999 to 2022
+
+    ```{r, include=FALSE}
+    results <- dplyr::tibble()
+    #adv_url <- "https://www.basketball-reference.com/leagues/NBA_1999.html"
+    years <- 1999:2015
+    for(i in seq_along(years)){
+      cat(sprintf('Year: %s at %s\n', years[i], Sys.time()))
+      reg_url <- paste("https://www.basketball-reference.com/leagues/NBA_", years[i],
+                       ".html", sep = "")
+      pg <- xml2::read_html(reg_url)
+      basketball_reg_stats <- rvest::html_table(pg, fill = TRUE)[[3]]
+      basketball_reg_stats <- dplyr::mutate(basketball_reg_stats, season = years[i])
+      results <- dplyr::bind_rows(results, basketball_reg_stats)
+    }
+
+    results1 <- dplyr::tibble()
+    #adv_url <- "https://www.basketball-reference.com/leagues/NBA_1999.html"
+    years1 <- 2016:2022
+    for(k in seq_along(years1)){
+      cat(sprintf('Year: %s at %s\n', years1[k], Sys.time()))
+      reg_url1 <- paste("https://www.basketball-reference.com/leagues/NBA_", years1[k],
+                       ".html", sep = "")
+      pg <- xml2::read_html(reg_url1)
+      basketball_reg_stats1 <- rvest::html_table(pg, fill = TRUE)[[5]]
+      basketball_reg_stats1 <- dplyr::mutate(basketball_reg_stats1, season = years1[k])
+      results1 <- dplyr::bind_rows(results1, basketball_reg_stats1)
+    }
+    results_final <- rbind(results, results1)
+
+
+    saveRDS(results_final, "\\Users\\jacob\\Info 3700 (Sports Statistics)\\Project Info 3700\\nba-basketball-stats-1999-2021.rds")
+
+    ```
+
+    ```{r season}
+    Basketball_Data <- readRDS("\\Users\\jacob\\Info 3700 (Sports Statistics)\\Project Info 3700\\nba-basketball-stats-1999-2021.rds")
+    Basketball_Data_Filtered <- Basketball_Data %>%
+      filter(., Team == 'League Average') 
+    colnames(Basketball_Data_Filtered)[9] <- "ThreeAtmp"
+    Basketball_Data_Filtered <- Basketball_Data_Filtered %>%
+      mutate(ThreeAtemptPec = ThreeAtmp/FGA)
+
+    p <- ggplot(data = Basketball_Data_Filtered,
+                aes(x = as.numeric(season), y = ThreeAtemptPec,
+                    text = paste('Year: ', season, '\n',
+                                 '3PA / FGA: ', percent(ThreeAtmp/FGA, .01)))) +
+      geom_point(color='salmon4') +
+      labs(title = "3PA/FGA vs Season", x = "Season",
+           y = "3PA / FGA")
+    ggplotly(p, tooltip = "text")
+    ```
+
+## Predicting Future 3 Point Attempt Percentage
+
+-   We then decided to predict what would the future 3 point attempt percentage based on the increase in years
+
+-   We did this by using linear regression
+
+-   We predicted for 10 years in the future (2032) and for 20 years in the future (2042)
+
+    ```{r, echo=TRUE}
+    colnames(results_final)[9] <- "ThreeAtmp"
+    results_final <- results_final %>%
+      mutate(ThreeAtemptPec = ThreeAtmp/FGA)
+
+    lm_three_atempts <- lm(ThreeAtemptPec ~ season,
+    data = results_final)
+
+    summary(lm_three_atempts)
+    ```
+
+```{r, echo=TRUE}
+#For 2032
+Prediction_1 <- data.frame("season" = 2032)
+predict(lm_three_atempts, newdata = Prediction_1)
+```
+
+```{r, echo=TRUE}
+#For 2032
+Prediction_2 <- data.frame("season" = 2042)
+predict(lm_three_atempts, newdata = Prediction_2)
+```
+
+## Conclusion
+
+-   Stephen Curry had a major impact on basketball 3 point shooting and the way the game is played today
+-   We can also see from the descriptive statistics how different of a 3 point shooter he is compared to other pro basketball players
